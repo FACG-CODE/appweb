@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+
+  # Servicio de MySQL
+  mysql:
+    image: mysql:8.0               # Usamos la imagen oficial de MySQL 8
+    container_name: mysqlserver    # Nombre interno del contenedor (Flask lo usará como host)
+    environment:                    # Variables de entorno para inicializar la DB
+      MYSQL_ROOT_PASSWORD: 12345    # Contraseña del usuario root
+      MYSQL_DATABASE: practica_docker  # Base de datos que Flask va a usar
+    ports:
+      - "3306:3306"                 # Mapear puerto 3306 del contenedor al host para acceso externo
+    networks:
+      - webapp-net                  # Conectamos a la red interna para comunicación con Flask y Nginx
+    volumes:
+      - mysql_data:/var/lib/mysql   # Persistencia de datos: aunque el contenedor se borre, los datos permanecen
+
+  # Servicio de Flask (appweb)
+  appweb:
+    build: ./appweb                 # Construye la imagen desde el Dockerfile ubicado en ./appweb
+    container_name: appweb          # Nombre del contenedor
+    restart: unless-stopped         # Se reinicia automáticamente si falla
+    expose:
+      - "5000"                      # Solo expuesto a la red interna (Nginx lo usa para proxy)
+    networks:
+      - webapp-net                  # Red interna compartida con MySQL y Nginx
+    depends_on:
+      - mysql                       # Se asegura de que MySQL esté listo antes de levantar Flask
+
+  # Servicio de Nginx
+  nginx:
+    image: nginx:latest             # Imagen oficial de Nginx
+    container_name: nginx           # Nombre del contenedor
+    restart: unless-stopped
+    ports:
+      - "8080:80"                   # Expone el puerto 80 del contenedor en el 8080 del host
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro  # Configuración personalizada de Nginx
+    networks:
+      - webapp-net                  # Conectado a la misma red interna para comunicarse con Flask
+    depends_on:
+      - appweb                      # Se asegura de que Flask esté listo antes de levantar Nginx
+
+volumes:
+  mysql_data:                       # Persistencia de datos de MySQL
+
+networks:
+  webapp-net:
+    driver: bridge                  # Red
