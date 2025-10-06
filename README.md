@@ -35,41 +35,54 @@ appweb/
 ## ⚡ Cómo correr la aplicación
 
 ## 1️⃣ Instalación y verificación
+```
 wsl --install         # Instala WSL2 si no está
 wsl --update          # Actualiza WSL2 si hace falta
 docker --version      # Verifica Docker
 docker compose version
 docker run hello-world
 docker login          # Inicia sesión en Docker Hub
+```
 
 ## 2️⃣ Descargar imagenes y crear red privada
 ### a. Descargar las imágenes necesarias
+```
 docker pull mysql:8.0
 docker pull nginx
 docker pull facg/appweb:1.0
+```
 
 ### b. Crear la red de Docker (si aún no la tienes)
+```
 docker network create webapp-net
+```
 
 ## 3️⃣ Levantar contenedores a partir de imagenes descargadas y conectarlos a la red privada
 ### a. MySQL
+```
 docker run -d --name mysqlserver \
 -e MYSQL_ROOT_PASSWORD=12345 \
 -p 3306:3306 \
 --network webapp-net \
 mysql:8.0
+```
 
 ### b. Nginx
+```
 docker run -d --name webserver \
 -p 8080:80 \
 --network webapp-net \
 nginx
+```
 
 ### c. Flask (appweb)
+```
 docker run -d --name appweb --network webapp-net facg/appweb:1.0
+```
 
 ## 4️⃣ Configuración de Nginx para Flask e Inicializacion de la base de datos con MySQL Workbench
 ### a. Crear archivo "nginx.conf" que contenga las siguientes lineas:
+```
 server {
     listen 80;
 
@@ -79,21 +92,27 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
 }
+```
 
 ### b. Copiar nginx.conf al contenedor
+```
 docker cp <ruta del archivo .conf creado> webserver:/etc/nginx/conf.d/default.conf
+```
 
 ### c. Entrar al contenedor y verificar
+```
   docker exec -it webserver sh
   nginx -t
   nginx -s reload
   exit
+```
 ### d. Abrir MySQL Workbench y crear una nueva conexión:
   Hostname / IP: localhost
   Puerto: 3306
   Usuario: root
   Contraseña: 12345
 ### e. Crear base de datos con el siguiente script sql:
+```
   create database if not exists practica_docker;
   use practica_docker;
 
@@ -110,6 +129,7 @@ docker cp <ruta del archivo .conf creado> webserver:/etc/nginx/conf.d/default.co
     ('Agustin', 'Guantay', 'agustinguantay@gmail.com'),
     ('Estefania', 'Gutierrez', 'estefaniagutierrez@gmail.com'),
     ('Ivan', 'Gutierrez', 'ivangutierrez@gmail.com');
+```
     
 ## 5️⃣ Verificación de servicios: La pagina debe mostrar un titulo y una tabla con los datos cargados en la base de datos.
 Abrir navegador: http://localhost:8080
